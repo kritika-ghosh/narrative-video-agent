@@ -1,6 +1,6 @@
 import os
 import json
-from moviepy.editor import ImageClip, TextClip, CompositeVideoClip, concatenate_videoclips
+from moviepy import ImageClip, TextClip, CompositeVideoClip, concatenate_videoclips
 
 class VideoService:
     def __init__(self):

@@ -1,11 +1,6 @@
 import os
 import json
 from crewai import Crew
-from app.agents.archivist import ArchivistAgent
-from app.agents.director import DirectorAgent
-from app.services.graph_service import GraphService
-from app.services.video_service import VideoService
-from app.api.routes import fake_database
 
 def clean_llm_json(raw_text: str) -> str:
     """Helper to strip out markdown formatting if the LLM adds it."""
@@ -14,6 +9,12 @@ def clean_llm_json(raw_text: str) -> str:
 def run_video_pipeline(job_id: str, image_paths: list, user_prompt: str):
     """The main background task that orchestrates the entire agentic flow."""
     try:
+        from .agents.archivist import ArchivistAgent
+        from .agents.director import DirectorAgent
+        from .services.graph_service import GraphService
+        from .services.video_service import VideoService
+        from .services.vision_service import VisionService
+        from .api.routes import fake_database
         # --- PHASE 1: PERCEPTION ---
         fake_database[job_id]["status"] = "Archivist is analyzing images..."
         fake_database[job_id]["progress"] = 15

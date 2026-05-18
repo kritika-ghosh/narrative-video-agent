@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .api import routes  # We will create this next!
+from .api import routes
 
 app = FastAPI(
     title="Narrative Archivist API",

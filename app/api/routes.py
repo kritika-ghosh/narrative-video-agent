@@ -4,7 +4,7 @@ import shutil
 from fastapi import APIRouter, UploadFile, File, Form, BackgroundTasks
 from typing import List
 from .schemas import JobResponse, JobStatusResponse
-from app.pipeline_runner import run_video_pipeline
+from ..pipe_runner import run_video_pipeline
 
 router = APIRouter()
 fake_database = {}

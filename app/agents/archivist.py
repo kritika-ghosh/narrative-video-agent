@@ -1,9 +1,16 @@
-from crewai import Agent, Task
-from app.services.vision_service import VisionService
+import os
+from crewai import Agent, Task, LLM
+from ..services.vision_service import VisionService
 
 class ArchivistAgent:
     def __init__(self):
         self.vision_service = VisionService()
+        
+        # Configure CrewAI to route through Groq's insanely fast Llama 3 model
+        self.llm = LLM(
+            model="groq/llama3-8b-8192",
+            api_key=os.getenv("GROQ_API_KEY")
+        )
 
     def get_agent(self) -> Agent:
         return Agent(
@@ -12,13 +19,11 @@ class ArchivistAgent:
             backstory='You are a master archivist with a keen eye for visual storytelling. '
                       'You do not just see objects; you see mood, lighting, and narrative potential.',
             verbose=True,
+            llm=self.llm,
             allow_delegation=False
         )
 
     def create_analysis_task(self, image_paths: list, user_prompt: str) -> Task:
-        # In a full run, we would loop through image_paths and call self.vision_service.analyze_image()
-        # For the task description, we instruct the agent on what to do with that data.
-        
         description = f"""
         The user wants a video with the following theme/prompt: '{user_prompt}'.
         You have been provided a batch of {len(image_paths)} images. 
