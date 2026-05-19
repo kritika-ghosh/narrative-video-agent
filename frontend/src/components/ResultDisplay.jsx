@@ -2,6 +2,11 @@ import { motion } from 'framer-motion';
 import { Check, Download, RotateCcw } from 'lucide-react';
 
 export default function ResultDisplay({ videoUrl, onReset }) {
+  // 1. Calculate the absolute absolute streaming URL ABOVE the return block
+  const fullVideoUrl = videoUrl && videoUrl.startsWith('http') 
+    ? videoUrl 
+    : `https://kritika53245-narrative-video-agent.hf.space${videoUrl}`;
+
   return (
     <div className="glass-card p-8 space-y-6">
       {/* Success badge */}
@@ -29,8 +34,9 @@ export default function ResultDisplay({ videoUrl, onReset }) {
           transition={{ delay: 0.3 }}
           className="rounded-xl overflow-hidden border border-border-dim bg-black"
         >
+          {/* 2. Bind the pre-calculated fullVideoUrl here */}
           <video
-            src={videoUrl}
+            src={fullVideoUrl}
             controls
             className="w-full aspect-video"
           >
@@ -43,8 +49,10 @@ export default function ResultDisplay({ videoUrl, onReset }) {
       <div className="flex items-center justify-center gap-4 pt-2">
         {videoUrl && (
           <a
-            href={videoUrl}
-            download
+            href={fullVideoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            download="narrative-video.mp4"
             className="btn-ghost"
           >
             <Download size={16} />
