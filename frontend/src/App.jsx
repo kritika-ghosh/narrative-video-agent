@@ -157,9 +157,13 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-16 text-text-muted text-xs font-mono tracking-wider relative z-10 flex items-center justify-center gap-2">
-        <Sparkles size={14} className="text-accent-secondary" />
-        ARCHIVIST v1.0 — powered by agentic AI
+      <footer className="mt-16 text-text-muted text-xs font-mono tracking-wider relative z-10 flex flex-col sm:flex-row items-center justify-center gap-2 text-center">
+        <div className="flex items-center gap-2">
+          <Sparkles size={14} className="text-accent-secondary" />
+          ARCHIVIST v1.0 — powered by agentic AI
+        </div>
+        <span className="hidden sm:inline text-text-muted/40">•</span>
+        <span>Designed & Developed by Kritika Ghosh</span>
       </footer>
 
       {/* Toasts */}

@@ -1,7 +1,7 @@
 import os
 import uuid
 import shutil
-from fastapi import APIRouter, UploadFile, File, Form, BackgroundTasks
+from fastapi import APIRouter, UploadFile, File, Form, BackgroundTasks, Request
 from typing import List
 from .schemas import JobResponse, JobStatusResponse
 from ..pipe_runner import run_video_pipeline
@@ -47,13 +47,21 @@ async def start_video_generation(
     )
 
 @router.get("/status/{job_id}", response_model=JobStatusResponse)
-async def check_job_status(job_id: str):
+async def check_job_status(job_id: str, request: Request):
     job = fake_database.get(job_id)
     if not job:
         return JobStatusResponse(job_id=job_id, status="not_found", progress=0)
+    
+    video_url = job["video_url"]
+    if video_url and not video_url.startswith("http"):
+        base_url = str(request.base_url).rstrip("/")
+        # Replace OS path backslashes with slashes for URL format
+        url_path = video_url.replace("\\", "/")
+        video_url = f"{base_url}/{url_path}"
+        
     return JobStatusResponse(
         job_id=job_id,
         status=job["status"],
         progress=job["progress"],
-        video_url=job["video_url"]
+        video_url=video_url
     )

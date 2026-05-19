@@ -1,0 +1,21 @@
+# Exclude local environment folders
+venv/
+.env
+
+# Exclude local assets & outputs
+data/
+image1.jpg
+image2.webp
+image3.jpg
+
+# Exclude Git files
+.git/
+.gitignore
+
+# Exclude frontend source & modules (built separately in Vercel)
+frontend/
+node_modules/
+
+# Exclude tests
+tests/
+test_pipeline.py
