@@ -31,7 +31,8 @@ app.mount("/data", StaticFiles(directory="data"), name="data")
 app.include_router(routes.router, prefix="/api/v1")
 
 # 5. HEALTH ENDPOINT FOR UPTIMEROBOT
-@app.get("/health")
-async def health_check():
+# To this (allow both GET and HEAD verbs):
+@app.route("/health", methods=["GET", "HEAD"])
+async def health_check(request):
     """Simple health check endpoint for keeping the space awake."""
     return {"status": "online", "message": "Narrative Archivist is awake and listening."}
