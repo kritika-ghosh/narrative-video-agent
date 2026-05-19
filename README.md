@@ -1,3 +1,15 @@
+---
+title: Narrative Video Agent
+emoji: 🎥
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
+# Narrative Video Agent
+... (leave your existing README text exactly as it was below the lines) ...
 # Narrative Video Agent: Technical Architecture & Design
 
 A high-performance, agentic video production pipeline designed to transform static visual assets into coherent, narrative-driven cinematic experiences.
