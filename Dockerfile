@@ -1,34 +1,26 @@
-# Use official Python 3.11 slim image
 FROM python:3.11-slim
+WORKDIR /workspace
 
-# Install system dependencies (FFmpeg + ImageMagick + standard font packages)
+# Install system dependencies for media rendering (FFmpeg + ImageMagick)
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     imagemagick \
     fonts-liberation \
     && rm -rf /var/lib/apt/lists/*
 
-# Fix ImageMagick security policy to allow text/font processing
-# (Required by MoviePy to prevent policy blocks on TextClips)
+# Fix ImageMagick security rights for text overlays
 RUN sed -i 's/domain="coder" rights="none" pattern="PDF"/domain="coder" rights="read|write" pattern="PDF"/' /etc/ImageMagick-6/policy.xml || true
 RUN sed -i 's/domain="path" rights="none" pattern="@\*"/domain="path" rights="read|write" pattern="@*"/' /etc/ImageMagick-6/policy.xml || true
 
-# Set up working directory
-WORKDIR /workspace
-
-# Copy and install python dependencies
+# Install Python requirements
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy backend app files and config
+# Copy application source code
 COPY app ./app
-COPY .env ./
 
-# Create data directories for persistence
-RUN mkdir -p data/uploads data/outputs
+# Expose Hugging Face's mandatory port
+EXPOSE 7860
 
-# Expose FastAPI port
-EXPOSE 8000
-
-# Start Uvicorn production server
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run using Uvicorn bound to port 7860
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7860"]

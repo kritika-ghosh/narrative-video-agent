@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+import os
 from .api import routes
 
 app = FastAPI(
@@ -9,22 +10,28 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Allow frontend applications to communicate with this API
+# 1. ALLOW CROSS-ORIGIN REQUESTS FROM YOUR FRONTEND
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # For production, change this to your frontend URL
+    allow_origins=["*"],  # For production, you can replace "*" with your actual Vercel URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Serve static files in the data directory (for generated videos and uploaded assets)
+# 2. ENSURE LOCAL VIDEO DIRECTORIES EXIST AT RUNTIME
+# This prevents crashes on Hugging Face if the container resets
+os.makedirs("data/uploads", exist_ok=True)
+os.makedirs("data/outputs", exist_ok=True)
+
+# 3. SERVE GENERATED VIDEOS
 app.mount("/data", StaticFiles(directory="data"), name="data")
 
-# Include our API routes
+# 4. ROUTE INCLUSION
 app.include_router(routes.router, prefix="/api/v1")
 
-@app.get("/")
+# 5. HEALTH ENDPOINT FOR UPTIMEROBOT
+@app.get("/health")
 async def health_check():
-    """Simple health check to verify the server is running."""
-    return {"status": "online", "message": "Narrative Archivist is awake and ready."}
+    """Simple health check endpoint for keeping the space awake."""
+    return {"status": "online", "message": "Narrative Archivist is awake and listening."}
