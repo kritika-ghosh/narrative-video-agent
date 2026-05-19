@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from .api import routes
 
 app = FastAPI(
@@ -16,6 +17,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Serve static files in the data directory (for generated videos and uploaded assets)
+app.mount("/data", StaticFiles(directory="data"), name="data")
 
 # Include our API routes
 app.include_router(routes.router, prefix="/api/v1")
