@@ -12,8 +12,9 @@ fake_database = {}
 @router.post("/generate", response_model=JobResponse)
 async def start_video_generation(
     background_tasks: BackgroundTasks,
-    images: List[UploadFile] = File(description="Upload your target image files directly here"),
-    prompt: str = Form(description="Enter the core text prompt narrative context"),
+    # Changing the type binding tells OpenAPI explicitly that this is a binary file stream array
+    images: List[UploadFile] = File(..., alias="images"),
+    prompt: str = Form(..., description="Enter the core text prompt narrative context"),
     theme: str = Form(default="cinematic", description="Enter optional aesthetic theme rules")
 ):
     """

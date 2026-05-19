@@ -8,7 +8,7 @@ class ArchivistAgent:
         
         # Configure CrewAI to route through Groq's insanely fast Llama 3 model
         self.llm = LLM(
-            model="groq/llama3-8b-8192",
+            model="groq/llama-3.1-8b-instant",
             api_key=os.getenv("GROQ_API_KEY")
         )
 

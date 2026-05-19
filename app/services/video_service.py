@@ -1,74 +1,95 @@
 import os
 import json
+# V2 Import (No '.editor'!)
 from moviepy import ImageClip, TextClip, CompositeVideoClip, concatenate_videoclips
+import os
+os.environ["IMAGEMAGICK_BINARY"] = r"C:\Program Files\ImageMagick-7.1.2-Q16-HDRI\magick.exe"
 
 class VideoService:
     def __init__(self):
         self.output_dir = "data/outputs"
-        # Ensure output directory exists
         os.makedirs(self.output_dir, exist_ok=True)
+        # Uncomment and update this path if TextClip complains about ImageMagick on Windows
+        # os.environ["IMAGEMAGICK_BINARY"] = r"C:\Program Files\ImageMagick-7.1.2-Q16-HDRI\magick.exe"
 
     def generate_video(self, job_id: str, script_json: str, image_paths_map: dict) -> str:
-        """
-        Takes the LLM's JSON script and renders the final MP4.
-        image_paths_map is a dictionary linking the image filename/ID to its actual local path.
-        """
+        """Assembles a valid MP4 artifact from semantic timeline definitions."""
         try:
-            # Parse the JSON script from the Director
-            # (We use json.loads directly because the LLM was instructed to return strict JSON)
             script_data = json.loads(script_json)
-            clips = []
+            compiled_clips = []
 
-            for scene in script_data:
-                img_id = scene.get("image_id")
-                caption = scene.get("caption", "")
-                duration = scene.get("duration", 3)  # Default to 3 seconds if missing
+            for timeline_event in script_data:
+                img_id = timeline_event.get("image_id")
+                caption = timeline_event.get("caption", "")
+                duration = timeline_event.get("duration", 3.5)
 
                 img_path = image_paths_map.get(img_id)
                 if not img_path or not os.path.exists(img_path):
-                    print(f"Warning: Could not find image {img_id}")
                     continue
 
-                # 1. Create the base image clip
-                # Resize to a standard 1080p vertical or horizontal format (let's use 1920x1080 horizontal for now)
-                base_clip = ImageClip(img_path).set_duration(duration).resize(height=1080, width=1920)
-
-                # 2. Create the text overlay
-                # Note: MoviePy TextClip requires ImageMagick installed on your system.
+                # V2 SYNTAX: with_duration() and resized()
+                base_clip = ImageClip(img_path).with_duration(duration).resized(height=1080, width=1920)
                 try:
-                    txt_clip = TextClip(
-                        caption, 
-                        fontsize=70, 
-                        color='white', 
-                        bg_color='rgba(0,0,0,0.5)', # Semi-transparent black background
-                        method='caption',
-                        size=(1600, None) # Keep text within bounds
-                    )
-                    # Center text at the bottom and set its duration to match the image
-                    txt_clip = txt_clip.set_position(('center', 850)).set_duration(duration)
+                    # Point to a standard Windows font location
+                    # On Windows, this is usually C:\Windows\Fonts\arial.ttf
+                    font_path = "C:/Windows/Fonts/arial.ttf"
                     
-                    # Merge image and text
-                    composite = CompositeVideoClip([base_clip, txt_clip])
-                    clips.append(composite)
+                    txt_clip = TextClip(
+                        text=caption, 
+                        font=font_path, # Explicitly setting the path
+                        font_size=64, 
+                        color='white', 
+                        method='caption',
+                        size=(1600, None)
+                    )
+                    
+                    txt_clip = txt_clip.with_position(('center', 880)).with_duration(duration)
+                    
+                    # Ensure the clip has a background for visibility
+                    # CompositeVideoClip requires a list of clips. 
+                    # We add a semi-transparent box behind the text if needed.
+                    composite_scene = CompositeVideoClip([base_clip, txt_clip])
+                    compiled_clips.append(composite_scene)
                 
                 except Exception as e:
-                    print(f"Text rendering failed for {img_id}, using raw image. Error: {e}")
-                    clips.append(base_clip)
+                    print(f"[!] Text render failed: {e}")
+                    # Keep the base clip so the video still renders
+                    compiled_clips.append(base_clip)
+                try:
+                    # V2 SYNTAX: Uses text=, font=, and font_size=
+                    txt_clip = TextClip(
+                        text=caption, 
+                        font="Arial", # V2 requires an explicit font
+                        font_size=64, 
+                        color='white', 
+                        method='caption',
+                        size=(1600, None)
+                    )
+                    # V2 SYNTAX: with_position()
+                    txt_clip = txt_clip.with_position(('center', 880)).with_duration(duration)
+                    
+                    composite_scene = CompositeVideoClip([base_clip, txt_clip])
+                    compiled_clips.append(composite_scene)
+                
+                except Exception as e:
+                    print(f"Warning: Text render failed for {img_id}: {e}")
+                    compiled_clips.append(base_clip)
 
-            if not clips:
-                return "Error: No valid clips could be generated."
+            if not compiled_clips:
+                return "Error: Empty layout sequence context."
 
-            # 3. Concatenate all scenes into one fluid timeline
-            # (For MVP, we are using simple cuts. Transitions can be added to padding later)
-            final_video = concatenate_videoclips(clips, method="compose")
-            
+            final_video = concatenate_videoclips(compiled_clips, method="compose")
             output_filepath = os.path.join(self.output_dir, f"{job_id}.mp4")
             
-            # 4. Render to file
-            # fps=24 gives it that cinematic look!
-            final_video.write_videofile(output_filepath, fps=24, codec="libx264", audio=False)
+            final_video.write_videofile(
+                output_filepath, 
+                fps=24, 
+                codec="libx264", 
+                audio=False,
+                logger=None 
+            )
             
             return output_filepath
 
         except Exception as e:
-            return f"Error during video generation: {str(e)}"
+            return f"Error executing assembly: {str(e)}"

@@ -9,7 +9,7 @@ class DirectorAgent:
         
         # The Director uses Groq to write the cohesive script
         self.llm = LLM(
-            model="groq/llama3-8b-8192",
+            model="groq/llama-3.1-8b-instant",
             api_key=os.getenv("GROQ_API_KEY")
         )
 
