@@ -67,15 +67,14 @@ const vertexShader = /* glsl */ `
   void main(){
     vSphereNormal = normalize(normalMatrix * normal);
 
-    // 4 octaves of noise → complex crumpled-foil surface detail
-    vec3  p  = position * 2.0;
-    float t  = uTime * 0.28;
+    // 2 octaves of LOW-FREQUENCY noise → large, smooth organic swells
+    // Lower position scale = bigger wavelength = rounder bumps
+    vec3  p  = position * 0.85;
+    float t  = uTime * 0.14;
 
-    float n  = snoise(p            + t)           * 1.000
-             + snoise(p * 2.2 + t  * 1.3 + 1.7)  * 0.500
-             + snoise(p * 4.8 + t  * 0.9 + 3.5)  * 0.250
-             + snoise(p * 9.5 + t  * 0.6 + 6.1)  * 0.125;
-    n /= 1.875; // roughly normalise to [-1,1]
+    float n  = snoise(p           + t)           * 1.000
+             + snoise(p * 2.0 + t * 1.1 + 1.7)  * 0.500;
+    n /= 1.5; // normalise
 
     vDisp = n;
 
@@ -132,26 +131,29 @@ const fragmentShader = /* glsl */ `
 
     float NdotV = clamp(dot(N, V), 0.0, 1.0);
 
-    // ── Fresnel term (how "edge-on" is this fragment?)
-    float fresnel = pow(1.0 - NdotV, 2.2);
+    // ── Fresnel term — gentler exponent so colour fills the whole surface
+    float fresnel = pow(1.0 - NdotV, 1.6);
 
-    // ── Secondary iridescence variation driven by surface displacement
-    //    This makes colour shift across the bumps, not just at edges.
-    float dispShift = vDisp * 0.18;
+    // ── Displacement shifts the colour laterally across smooth swells
+    //    (smaller coefficient = wider, softer colour zones)
+    float dispShift = vDisp * 0.28;
 
     // ── Sample palette
-    float t      = clamp(fresnel * 1.1 + dispShift, 0.0, 1.0);
+    //    fresnel * 0.75 keeps the palette away from the extremes → stays
+    //    in the vivid blue-purple-cyan-pink mid-range across most of the blob.
+    float t      = clamp(fresnel * 0.75 + dispShift * 0.5 + 0.12, 0.0, 1.0);
     vec3  iriCol = iridPalette(t);
 
-    // ── Dark base for the deep concavities
-    vec3 base = vec3(0.004, 0.004, 0.06);
-    vec3 color = mix(base, iriCol, pow(fresnel, 0.65) * 1.9 + 0.04);
+    // ── No dark base — the smooth reference is fully saturated everywhere.
+    //    We use a deep-blue minimum so even facing-camera areas glow.
+    vec3 base = vec3(0.04, 0.04, 0.35);
+    vec3 color = mix(base, iriCol, pow(fresnel, 0.5) * 1.6 + 0.25);
 
-    // ── Bright specular flare at very glancing angles (the white edge glints)
-    color += vec3(0.85, 0.92, 1.0) * pow(fresnel, 6.0) * 2.2;
+    // ── Subtle bright rim (white edge glint, less aggressive)
+    color += vec3(0.75, 0.88, 1.0) * pow(fresnel, 5.0) * 1.2;
 
     // ── Gentle gamma
-    color = pow(max(color, 0.0), vec3(0.88));
+    color = pow(max(color, 0.0), vec3(0.90));
 
     gl_FragColor = vec4(color, 1.0);
   }
@@ -160,9 +162,9 @@ const fragmentShader = /* glsl */ `
 /* ═══════════════════════════════════════════════════════════════
    React component
 ═══════════════════════════════════════════════════════════════ */
-const IDLE_DISTORT  = 0.72;
-const HOVER_DISTORT = 0.92;
-const LERP          = 2.8;
+const IDLE_DISTORT  = 0.28;   // smooth swell, not spiky
+const HOVER_DISTORT = 0.42;   // gentle increase on hover
+const LERP          = 2.0;
 
 function IridescentMesh({ hovered }) {
   const meshRef    = useRef(null);
