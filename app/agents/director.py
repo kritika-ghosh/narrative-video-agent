@@ -15,20 +15,16 @@ class DirectorAgent:
 
     def get_agent(self) -> Agent:
         return Agent(
-            role='Narrative Director',
-            goal='Sequence visual assets for maximum emotional impact and write cohesive, flowing captions.',
+            role='Narrative Director & Visual Editor',
+            goal='Sequence visual assets for maximum emotional impact, choose cinematic transitions, score the soundtrack, and write cohesive captions.',
             backstory='You are an award-winning film director. You understand that a story is not just a list of events, '
-                      'but a carefully paced emotional journey. You excel at writing subtle, engaging captions.',
+                      'but a carefully paced emotional journey. You excel at writing engaging captions, choosing the perfect AI soundtrack, and selecting specific visual transitions (like pixel wipes or smooth cuts) to convey mood.',
             verbose=True,
             llm=self.llm,
             allow_delegation=False
         )
 
     def create_scripting_task(self, raw_dossier: str, user_prompt: str) -> Task:
-        # First, we theoretically parse the JSON from the Archivist
-        # and run it through our GraphService to get the sorted list.
-        # (We will wire that actual connection up in our main pipeline runner next!)
-
         description = f"""
         Theme: '{user_prompt}'
         
@@ -36,19 +32,20 @@ class DirectorAgent:
         {raw_dossier}
         
         Your task:
-        1. Review the sequence. 
-        2. Write a short, engaging caption (max 10 words) for each image that connects it to the previous one.
-        3. Output the final result as a strict JSON array where each object has:
-           - 'image_id': the ID or filename
-           - 'caption': your generated text
-           - 'duration': recommended seconds to show this image (between 2 to 5)
-           - 'transition': recommended transition to the next image (e.g., 'crossfade', 'cut')
-        
-        Return ONLY valid JSON.
+        1. Review the overall narrative sequence and the user's theme.
+        2. Invent a highly detailed 'bgm_prompt' for an AI audio generator to score this exact video (e.g., 'Cinematic Hans Zimmer style orchestral swell, tense, 120bpm').
+        3. Write the scenes. For each image in the sequence:
+           - Retain its exact 'image_id'.
+           - Write a short, engaging 'caption' (max 10 words) that bridges the narrative.
+           - Assign a display 'duration' (between 2.5 and 5.0 seconds).
+           - Assign a 'transition_next' describing how to visually transition to the *next* image based on the mood shift. 
+             You MUST choose from exactly one of these strings: fade, pixelize, smoothleft, circlecrop, distance, radial.
+             
+        Return ONLY valid JSON matching the expected schema.
         """
 
         return Task(
             description=description,
-            expected_output="A strict JSON array of objects detailing the script, captions, and timing.",
+            expected_output="A strict JSON object containing a 'bgm_prompt' string and a 'scenes' array detailing the script, captions, durations, and transitions.",
             agent=self.get_agent()
         )

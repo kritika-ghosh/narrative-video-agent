@@ -1,8 +1,11 @@
 import os
 import json
+import platform
+import subprocess
+
 # V2 Import (No '.editor'!)
 from moviepy import ImageClip, TextClip, CompositeVideoClip, concatenate_videoclips, ColorClip
-import platform
+
 if platform.system() == "Windows":
     os.environ["IMAGEMAGICK_BINARY"] = r"C:\Program Files\ImageMagick-7.1.2-Q16-HDRI\magick.exe"
 else:
@@ -12,10 +15,8 @@ class VideoService:
     def __init__(self):
         self.output_dir = "data/outputs"
         os.makedirs(self.output_dir, exist_ok=True)
-        # Uncomment and update this path if TextClip complains about ImageMagick on Windows
-        # os.environ["IMAGEMAGICK_BINARY"] = r"C:\Program Files\ImageMagick-7.1.2-Q16-HDRI\magick.exe"
 
-    def generate_video(self, job_id: str, script_json: str, image_paths_map: dict) -> str:
+    def generate_video(self, job_id: str, script_json: str, image_paths_map: dict, bgm_path: str = None) -> str:
         """Assembles a valid MP4 artifact from semantic timeline definitions."""
         try:
             script_data = json.loads(script_json)
@@ -99,28 +100,85 @@ class VideoService:
 
                     txt_clip = txt_clip.with_position(('center', y_pos)).with_duration(duration)
                     composite_scene = CompositeVideoClip([base_clip, txt_clip], size=(canvas_w, canvas_h))
-                    compiled_clips.append(composite_scene)
+                    scene_path = os.path.join(self.output_dir, f"{job_id}_scene_{len(compiled_clips)}.mp4")
+                    composite_scene.write_videofile(scene_path, fps=24, codec="libx264", audio=False, logger=None)
+                    
+                    compiled_clips.append({"path": scene_path, "duration": duration})
                 
                 except Exception as e:
                     print(f"[!] Text render failed for {img_id}: {e}")
-                    # Keep the base clip so the video still renders
-                    compiled_clips.append(base_clip)
+                    # Save the base clip anyway so it doesn't break
+                    scene_path = os.path.join(self.output_dir, f"{job_id}_scene_{len(compiled_clips)}.mp4")
+                    base_clip.write_videofile(scene_path, fps=24, codec="libx264", audio=False, logger=None)
+                    compiled_clips.append({"path": scene_path, "duration": duration})
 
             if not compiled_clips:
                 return "Error: Empty layout sequence context."
 
-            final_video = concatenate_videoclips(compiled_clips, method="compose")
-            output_filepath = os.path.join(self.output_dir, f"{job_id}.mp4")
+            # --- FFMPEG XFADE STITCHING LOOP ---
+            current_video = compiled_clips[0]["path"]
+            current_duration = compiled_clips[0]["duration"]
             
-            final_video.write_videofile(
-                output_filepath, 
-                fps=24, 
-                codec="libx264", 
-                audio=False,
-                logger=None 
-            )
+            fade_duration = 1.0 
             
-            return output_filepath
+            for i in range(1, len(compiled_clips)):
+                next_video = compiled_clips[i]["path"]
+                next_duration = compiled_clips[i]["duration"]
+                
+                out_video = os.path.join(self.output_dir, f"{job_id}_stitch_{i}.mp4")
+                offset = current_duration - fade_duration
+                
+                llm_transition = script_data[i-1].get("transition_next", "fade")
+                
+                # BULLETPROOF XFADE: Normalize pixel formats and timebases before stitching
+                filter_string = (
+                    f"[0:v]format=yuv420p,settb=AVTB[v0];"
+                    f"[1:v]format=yuv420p,settb=AVTB[v1];"
+                    f"[v0][v1]xfade=transition={llm_transition}:duration={fade_duration}:offset={offset}[v]"
+                )
+                
+                cmd = [
+                    "ffmpeg", "-y",
+                    "-i", current_video,
+                    "-i", next_video,
+                    "-filter_complex", filter_string,
+                    "-map", "[v]",
+                    "-c:v", "libx264",
+                    out_video
+                ]
+                
+                print(f"Stitching scene {i-1} and {i} with {llm_transition}...")
+                
+                try:
+                    subprocess.run(cmd, check=True)
+                except subprocess.CalledProcessError as e:
+                    print(f"FFMPEG CRASHED ON STITCH {i}! Check the logs above.")
+                    raise e 
+                
+                current_video = out_video
+                current_duration = current_duration + next_duration - fade_duration
+
+            final_video_path = os.path.join(self.output_dir, f"{job_id}_final.mp4")
+
+            # --- ADD BACKGROUND MUSIC ---
+            if bgm_path and os.path.exists(bgm_path):
+                print("Mixing BGM with final video...")
+                cmd = [
+                    "ffmpeg", "-y",
+                    "-i", current_video,
+                    "-i", bgm_path,
+                    "-filter_complex", "[1:a]volume=0.4[a]", 
+                    "-map", "0:v", "-map", "[a]",
+                    "-c:v", "copy",
+                    "-c:a", "aac",
+                    "-shortest", 
+                    final_video_path
+                ]
+                subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+                return final_video_path
+            else:
+                os.rename(current_video, final_video_path)
+                return final_video_path
 
         except Exception as e:
             return f"Error executing assembly: {str(e)}"
