@@ -275,6 +275,95 @@ body::before {
   animation: float 6s ease-in-out infinite;
 }
 
+/* ── Trial / Demo Banner ── */
+.trial-banner {
+  background: linear-gradient(
+    135deg,
+    rgba(0, 212, 255, 0.04),
+    rgba(124, 92, 255, 0.06)
+  );
+  border: 1px solid rgba(0, 212, 255, 0.15);
+  border-radius: 0.875rem;
+  padding: 0.875rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.trial-banner-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.trial-icon {
+  color: var(--color-accent-secondary);
+  flex-shrink: 0;
+}
+
+.trial-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-accent-secondary);
+  letter-spacing: 0.02em;
+}
+
+.trial-sublabel {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.trial-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.trial-preset-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.775rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background: rgba(13, 13, 24, 0.6);
+  border: 1px solid rgba(0, 212, 255, 0.12);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.22s ease;
+  white-space: nowrap;
+}
+
+.trial-preset-btn:hover:not(:disabled) {
+  color: var(--color-text-primary);
+  border-color: var(--color-accent-secondary);
+  background: rgba(0, 212, 255, 0.07);
+  box-shadow: 0 0 14px rgba(0, 212, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+.trial-preset-btn--active {
+  color: #fff !important;
+  border-color: var(--color-accent-secondary) !important;
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.18), rgba(124, 92, 255, 0.12)) !important;
+  box-shadow: 0 0 18px rgba(0, 212, 255, 0.15) !important;
+}
+
+.trial-preset-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.trial-error {
+  font-size: 0.75rem;
+  color: var(--color-accent-warm);
+  margin: 0;
+  overflow: hidden;
+}
+
 /* ── Scrollbar ── */
 ::-webkit-scrollbar {
   width: 6px;

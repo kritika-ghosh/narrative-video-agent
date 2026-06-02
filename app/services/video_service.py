@@ -16,7 +16,7 @@ class VideoService:
         self.output_dir = "data/outputs"
         os.makedirs(self.output_dir, exist_ok=True)
 
-    def generate_video(self, job_id: str, script_json: str, image_paths_map: dict, bgm_path: str = None) -> str:
+    def generate_video(self, job_id: str, script_json: str, image_paths_map: dict) -> str:
         """Assembles a valid MP4 artifact from semantic timeline definitions."""
         try:
             script_data = json.loads(script_json)
@@ -159,26 +159,8 @@ class VideoService:
                 current_duration = current_duration + next_duration - fade_duration
 
             final_video_path = os.path.join(self.output_dir, f"{job_id}_final.mp4")
-
-            # --- ADD BACKGROUND MUSIC ---
-            if bgm_path and os.path.exists(bgm_path):
-                print("Mixing BGM with final video...")
-                cmd = [
-                    "ffmpeg", "-y",
-                    "-i", current_video,
-                    "-i", bgm_path,
-                    "-filter_complex", "[1:a]volume=0.4[a]", 
-                    "-map", "0:v", "-map", "[a]",
-                    "-c:v", "copy",
-                    "-c:a", "aac",
-                    "-shortest", 
-                    final_video_path
-                ]
-                subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
-                return final_video_path
-            else:
-                os.rename(current_video, final_video_path)
-                return final_video_path
+            os.rename(current_video, final_video_path)
+            return final_video_path
 
         except Exception as e:
             return f"Error executing assembly: {str(e)}"

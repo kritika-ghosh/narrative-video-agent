@@ -26,7 +26,6 @@ class ScriptScene(BaseModel):
     transition_next: str = Field(description="FFmpeg xfade transition to the next scene based on mood (choose from: fade, pixelize, smoothleft, circlecrop, distance, radial)")
 
 class ScriptOutput(BaseModel):
-    bgm_prompt: str = Field(description="A highly detailed prompt for an AI audio model to generate the background music")
     scenes: List[ScriptScene] = Field(description="Ordered list of scenes for the video")
 
 # ---------------------------------------------------------
@@ -48,7 +47,7 @@ def run_video_pipeline(job_id: str, image_paths: list, user_prompt: str):
 
         # --- PHASE 1: PERCEPTION ---
         fake_database[job_id]["status"] = "Archivist is analyzing images..."
-        fake_database[job_id]["progress"] = 15
+        fake_database[job_id]["progress"] = 20
         
         archivist = ArchivistAgent()
         archivist_task = archivist.create_analysis_task(image_paths, user_prompt)
@@ -60,12 +59,12 @@ def run_video_pipeline(job_id: str, image_paths: list, user_prompt: str):
         
         # --- PHASE 2: GRAPH TRAVERSAL ---
         fake_database[job_id]["status"] = "Calculating narrative arc..."
-        fake_database[job_id]["progress"] = 40
+        fake_database[job_id]["progress"] = 45
         
         if hasattr(raw_metadata, 'pydantic') and raw_metadata.pydantic:
-            metadata_list = [asset.model_dump() for asset in raw_metadata.pydantic.assets]
+             metadata_list = [asset.model_dump() for asset in raw_metadata.pydantic.assets]
         elif hasattr(raw_metadata, 'json_dict') and raw_metadata.json_dict:
-            metadata_list = raw_metadata.json_dict.get('assets', [])
+             metadata_list = raw_metadata.json_dict.get('assets', [])
         else:
             raise ValueError("CrewAI failed to return a validated structure for the Archivist.")
             
@@ -79,7 +78,7 @@ def run_video_pipeline(job_id: str, image_paths: list, user_prompt: str):
 
         # --- PHASE 3: SCRIPTING ---
         fake_database[job_id]["status"] = "Director is writing the script..."
-        fake_database[job_id]["progress"] = 60
+        fake_database[job_id]["progress"] = 70
         
         director = DirectorAgent()
         director_task = director.create_scripting_task(sorted_dossier_str, user_prompt)
@@ -89,39 +88,26 @@ def run_video_pipeline(job_id: str, image_paths: list, user_prompt: str):
         crew_2 = Crew(agents=[director.get_agent()], tasks=[director_task], verbose=True)
         raw_script = crew_2.kickoff()
 
-        # --- PHASE 4: AUDIO GENERATION ---
-        fake_database[job_id]["status"] = "Composing cinematic soundtrack..."
-        fake_database[job_id]["progress"] = 70
-        
         # EXTRACT THE LLM'S DATA FIRST
         if hasattr(raw_script, 'pydantic') and raw_script.pydantic:
-            dynamic_bgm_prompt = raw_script.pydantic.bgm_prompt
             clean_script_dict = [scene.model_dump() for scene in raw_script.pydantic.scenes]
         elif hasattr(raw_script, 'json_dict') and raw_script.json_dict:
-            dynamic_bgm_prompt = raw_script.json_dict.get('bgm_prompt', f"Cinematic music for {user_prompt}")
             clean_script_dict = raw_script.json_dict.get('scenes', [])
         else:
             raise ValueError("CrewAI failed to return a validated structure for the Director.")
             
         clean_script_json = json.dumps(clean_script_dict)
 
-        from .services.audio_service import AudioService
-        audio_service = AudioService()
-        
-        # USE THE AI-GENERATED PROMPT!
-        bgm_path = os.path.join("data/outputs", f"{job_id}_bgm.wav")
-        audio_service.generate_bgm(dynamic_bgm_prompt, bgm_path)
-
-        # --- PHASE 5: RENDERING ---
-        fake_database[job_id]["status"] = "Applying transitions & mixing audio..."
-        fake_database[job_id]["progress"] = 85
+        # --- PHASE 4: RENDERING ---
+        fake_database[job_id]["status"] = "Applying transitions & rendering video..."
+        fake_database[job_id]["progress"] = 90
         
         video_service = VideoService()
         image_paths_map = {os.path.basename(p): p for p in image_paths}
         
-        final_video_path = video_service.generate_video(job_id, clean_script_json, image_paths_map, bgm_path=bgm_path)
+        final_video_path = video_service.generate_video(job_id, clean_script_json, image_paths_map)
 
-        # --- PHASE 6: COMPLETE ---
+        # --- PHASE 5: COMPLETE ---
         fake_database[job_id]["status"] = "completed"
         fake_database[job_id]["progress"] = 100
         fake_database[job_id]["video_url"] = final_video_path 

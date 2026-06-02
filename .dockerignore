@@ -13,7 +13,7 @@ image3.jpg
 .gitignore
 
 # Exclude frontend source & modules (built separately in Vercel)
-frontend/
+#frontend/
 node_modules/
 
 # Exclude tests

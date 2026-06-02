@@ -16,9 +16,9 @@ class DirectorAgent:
     def get_agent(self) -> Agent:
         return Agent(
             role='Narrative Director & Visual Editor',
-            goal='Sequence visual assets for maximum emotional impact, choose cinematic transitions, score the soundtrack, and write cohesive captions.',
+            goal='Sequence visual assets for maximum emotional impact, choose cinematic transitions, and write cohesive captions.',
             backstory='You are an award-winning film director. You understand that a story is not just a list of events, '
-                      'but a carefully paced emotional journey. You excel at writing engaging captions, choosing the perfect AI soundtrack, and selecting specific visual transitions (like pixel wipes or smooth cuts) to convey mood.',
+                      'but a carefully paced emotional journey. You excel at writing engaging captions and selecting specific visual transitions (like pixel wipes or smooth cuts) to convey mood.',
             verbose=True,
             llm=self.llm,
             allow_delegation=False
@@ -33,8 +33,7 @@ class DirectorAgent:
         
         Your task:
         1. Review the overall narrative sequence and the user's theme.
-        2. Invent a highly detailed 'bgm_prompt' for an AI audio generator to score this exact video (e.g., 'Cinematic Hans Zimmer style orchestral swell, tense, 120bpm').
-        3. Write the scenes. For each image in the sequence:
+        2. Write the scenes. For each image in the sequence:
            - Retain its exact 'image_id'.
            - Write a short, engaging 'caption' (max 10 words) that bridges the narrative.
            - Assign a display 'duration' (between 2.5 and 5.0 seconds).
@@ -46,6 +45,6 @@ class DirectorAgent:
 
         return Task(
             description=description,
-            expected_output="A strict JSON object containing a 'bgm_prompt' string and a 'scenes' array detailing the script, captions, durations, and transitions.",
+            expected_output="A strict JSON object containing a 'scenes' array detailing the script, captions, durations, and transitions.",
             agent=self.get_agent()
         )
